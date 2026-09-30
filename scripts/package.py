@@ -15,14 +15,19 @@ args = parser.parse_args()
 dist = root / 'dist'
 dist.mkdir(exist_ok=True)
 metadata = json.loads(subprocess.check_output(['cargo', 'metadata', '--locked', '--offline', '--format-version', '1'], cwd=root))
+version = next(package['version'] for package in metadata['packages'] if package['id'] == metadata['resolve']['root'])
 
 def bundle(platform, binary):
     if not binary.is_file(): raise SystemExit(f'Missing binary: {binary}')
-    folder = dist / f'adhd-0.1.0-{platform}-x86_64'
+    folder = dist / f'adhd-{version}-{platform}-x86_64'
     (folder / 'bin').mkdir(parents=True, exist_ok=True)
     shutil.copy2(binary, folder / 'bin' / binary.name)
     for name in ['README.md', 'LICENSE', 'THIRD_PARTY.md', 'VERIFICATION.md']:
         if (root / name).is_file(): shutil.copy2(root / name, folder / name)
+    if platform == 'windows':
+        for name in ['Setup.cmd', 'Uninstall.cmd']:
+            # Windows command files use CRLF, even when packaged on Linux.
+            (folder / name).write_bytes((root / name).read_text().replace('\n', '\r\n').encode('utf-8'))
     shutil.copytree(root / 'scripts', folder / 'scripts', dirs_exist_ok=True, ignore=shutil.ignore_patterns('__pycache__'))
     shutil.copytree(root / 'integrations', folder / 'integrations', dirs_exist_ok=True)
     licenses = folder / 'licenses'

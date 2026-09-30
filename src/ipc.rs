@@ -37,7 +37,12 @@ impl Server {
             .open(dir.join("instance.lock"))?;
         match lock.try_lock_exclusive() {
             Ok(()) => {}
-            Err(e) if e.kind() == io::ErrorKind::WouldBlock => return Ok(None),
+            Err(e)
+                if e.kind() == io::ErrorKind::WouldBlock
+                    || e.raw_os_error() == fs2::lock_contended_error().raw_os_error() =>
+            {
+                return Ok(None)
+            }
             Err(e) => return Err(e),
         }
         let listener = TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0))?;

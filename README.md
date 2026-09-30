@@ -51,13 +51,37 @@ The bundled x86-64 Linux binary is built in Debian Bookworm and requires glibc 2
 
 ### Windows 10 and 11
 
-Extract the whole Windows bundle, then run its installer in PowerShell:
+1. Download the **Windows ZIP** from the [latest release](https://github.com/AH64-dll/adhd-reminder/releases/latest).
+2. Right-click the ZIP and choose **Extract All**.
+3. Open the extracted folder and double-click **Setup.cmd**.
+4. Approve the Windows administrator prompt. Setup installs ADHD and starts it.
+
+No terminal commands, Rust, or extra PowerShell installation are needed. Keep `Setup.cmd`, `scripts`, and `bin` together until setup finishes. Double-click Setup normally; it requests permission itself.
+
+Administrator approval is used only to register login startup. Files, shortcuts, and PATH belong to the person who clicked Setup, and the reminder runs with ordinary user permissions. This also applies when a different administrator approves the prompt. Canceling the permission prompt leaves setup incomplete and shows an explanation in the original window.
+
+For manual installation or source builds, the PowerShell entry point is still available:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\install-windows.ps1 -Binary .\bin\adhd.exe
 ```
 
 The per-user installer adds a Start menu entry, a login task, and the app folder to your user PATH. Open a new terminal to use `ADHD`. Keep any bundled DLL files beside the executable. From source, use a Rust MSVC toolchain with Visual Studio C++ Build Tools and `cargo build --release --locked`.
+
+### Other distribution options
+
+| Platform | Option | User experience and tradeoff |
+| --- | --- | --- |
+| Windows | `Setup.cmd` (included) | Extract a ZIP, double-click Setup, approve permission. Small and easy to maintain. |
+| Windows | [Inno Setup `Setup.exe`](https://jrsoftware.org/isinfo.php) | A single download with a familiar installation wizard and uninstaller. Recommended next step for general distribution. |
+| Windows | MSI | Useful for centrally managed company devices; more packaging work for this small app. |
+| Windows | [WinGet](https://learn.microsoft.com/en-us/windows/package-manager/winget/) | Install and update through Windows Package Manager after publishing an appropriate package. ADHD is not listed yet. |
+| Linux | Current per-user script (included) | One command, no root access, desktop launcher and login startup installed together. |
+| Linux | [AppImage](https://docs.appimage.org/introduction/concepts.html) | One portable file. Users may need to mark it executable; login startup and helpers still need integration. |
+| Linux | [Flatpak](https://docs.flatpak.org/en/latest/using-flatpak.html) | Install through supported software centers; requires packaging and adapting desktop/startup access to the sandbox. |
+| Linux | `.deb` / `.rpm` | Native distribution packages and system package management; maintain separate Debian/Ubuntu and Fedora builds. |
+
+Only the ZIP/command-file and existing Linux script are included in this release; the other formats are future options.
 
 ## Linux desktop integration
 
@@ -119,7 +143,7 @@ The release build can be reproduced with `scripts/Containerfile.linux` using Pod
 
 Linux: `python3 scripts/uninstall-linux.py`
 
-Windows: `powershell -ExecutionPolicy Bypass -File .\scripts\uninstall-windows.ps1`
+Windows: double-click **Uninstall.cmd** in the extracted bundle, or run `powershell -ExecutionPolicy Bypass -File .\scripts\uninstall-windows.ps1`.
 
 Both remove startup integration and the app while retaining saved goals/settings. Delete the data directory separately if you want to erase them.
 
