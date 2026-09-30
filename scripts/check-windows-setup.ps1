@@ -54,7 +54,16 @@ try {
     $scheduler.Connect()
     $permissions = $scheduler.GetFolder('\').GetTask($taskName).GetSecurityDescriptor(4)
     $sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
-    Assert ($permissions.Contains('(A;;GA;;;' + $sid + ')')) 'The original user cannot manage startup.'
+    # Task Scheduler maps generic rights to file rights; compare the effective
+    # access mask instead of expecting the original SDDL spelling to survive.
+    $descriptor = New-Object System.Security.AccessControl.RawSecurityDescriptor($permissions)
+    $mask = 0
+    foreach ($ace in $descriptor.DiscretionaryAcl) {
+        if ($ace.SecurityIdentifier.Value -eq $sid -and $ace.AceQualifier -eq [System.Security.AccessControl.AceQualifier]::AccessAllowed) {
+            $mask = $mask -bor $ace.AccessMask
+        }
+    }
+    Assert (($mask -band 0x10000000) -ne 0 -or ($mask -band 0x001F01FF) -eq 0x001F01FF) 'The original user cannot manage startup.'
     & schtasks.exe /Change /TN $taskName /DISABLE | Out-Null
     Assert ($LASTEXITCODE -eq 0) 'Disabling startup failed.'
     & schtasks.exe /Change /TN $taskName /ENABLE | Out-Null
