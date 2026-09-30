@@ -1,0 +1,8 @@
+/target/
+/dist/
+/.tools/
+/.cargo/config.toml
+/test-results/*.png
+/test-results/*.json
+__pycache__/
+/test-results/*.log

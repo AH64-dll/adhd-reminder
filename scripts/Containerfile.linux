@@ -1,0 +1,8 @@
+FROM docker.io/library/rust:1.97.1-slim-bookworm
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    pkg-config libfontconfig1-dev libxkbcommon-dev libx11-dev libxcb1-dev \
+    libxrandr-dev libxi-dev libxcursor-dev libxfixes-dev libwayland-dev \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /work
+ENV CARGO_TARGET_DIR=/build
+CMD ["cargo", "build", "--release", "--locked"]

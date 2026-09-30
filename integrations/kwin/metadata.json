@@ -1,0 +1,12 @@
+{
+  "KPlugin": {
+    "Id": "adhd-reminder",
+    "Name": "ADHD Reminder desktop helper",
+    "Description": "Full-screen detection for the ADHD Rust app",
+    "Version": "0.1.0",
+    "License": "MIT"
+  },
+  "X-Plasma-API": "declarativescript",
+  "X-Plasma-MainScript": "ui/main.qml",
+  "KPackageStructure": "KWin/Script"
+}

@@ -1,0 +1,7 @@
+{
+  "uuid": "adhd-reminder@local",
+  "name": "ADHD Reminder desktop helper",
+  "description": "Full-screen detection and floating-window support for the ADHD Rust app. No goals or personal data are read.",
+  "shell-version": ["45", "46", "47", "48", "49", "50"],
+  "version": 1
+}

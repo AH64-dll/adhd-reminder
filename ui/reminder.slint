@@ -1,0 +1,159 @@
+import { Button, LineEdit, CheckBox, SpinBox, ScrollView, Palette, AboutSlint } from "std-widgets.slint";
+
+component Action inherits Rectangle {
+    in property <string> label;
+    in property <bool> primary: false;
+    callback clicked;
+    height: 40px;
+    border-radius: 8px;
+    border-width: focus.has-focus ? 2px : 0px;
+    border-color: #244736;
+    forward-focus: focus;
+    background: primary ? (touch.has-hover ? #365c4c : #426d5b) : (touch.has-hover ? #e5e4dc : #eeede6);
+    Text { text: root.label; color: root.primary ? #ffffff : #333c37; font-size: 13px; horizontal-alignment: center; vertical-alignment: center; }
+    touch := TouchArea { clicked => { focus.focus(); root.clicked(); } }
+    focus := FocusScope {
+        width: 0; // Keyboard focus only; do not intercept pointer clicks above TouchArea.
+        key-pressed(event) => {
+            if event.text == Key.Return || event.text == " " { root.clicked(); return accept; }
+            return reject;
+        }
+    }
+    accessible-role: button;
+    accessible-label: label;
+    accessible-action-default => { root.clicked(); }
+}
+
+export component Reminder inherits Window {
+    title: "ADHD · One thing at a time";
+    always-on-top: true;
+    init => { Palette.color-scheme = ColorScheme.light; }
+    preferred-width: 420px;
+    preferred-height: settings-open ? 560px : 380px;
+    min-width: 360px;
+    min-height: settings-open ? 560px : (error != "" ? 440px : 380px);
+    background: #f7f6f0;
+    default-font-family: "sans-serif";
+    default-font-size: 14px;
+    in property <bool> active-goal: false;
+    in property <string> goal;
+    in property <string> prompt: "What are you doing now?";
+    in property <string> subtitle: "One thing is enough. You can change it later.";
+    in property <string> error;
+    in property <string> integration;
+    in property <string> timer-description: "A quiet check-in every 20–30 minutes";
+    in-out property <string> draft;
+    in-out property <bool> settings-open: false;
+    in-out property <bool> random-timing: true;
+    in-out property <int> min-minutes: 20;
+    in-out property <int> max-minutes: 30;
+    in-out property <int> fixed-minutes: 25;
+    in-out property <bool> serious: false;
+    in property <bool> startup-enabled: false;
+    in property <bool> startup-available: false;
+    callback start-goal(string);
+    callback still-working;
+    callback finish-goal;
+    callback cancel-goal;
+    callback hide-card;
+    callback quit-app;
+    callback open-settings;
+    callback save-settings(bool, int, int, int, bool);
+    callback reset-position;
+    callback set-startup(bool);
+    callback draft-changed(string);
+
+    VerticalLayout {
+        padding: 24px;
+        spacing: 16px;
+        HorizontalLayout {
+            spacing: 8px;
+            Text { text: "●"; color: #426d5b; width: 14px; font-size: 12px; vertical-alignment: center; }
+            Text { text: "ONE THING AT A TIME"; color: #697169; font-size: 11px; font-weight: 600; vertical-alignment: center; }
+            Rectangle { horizontal-stretch: 1; }
+            Button { text: root.settings-open ? "Back" : "Settings"; clicked => { root.open-settings(); } }
+        }
+        if !root.settings-open : VerticalLayout {
+            spacing: 12px;
+            Text { text: root.active-goal ? "Still with this?" : root.prompt; color: #263b30; font-size: 23px; font-weight: 600; wrap: word-wrap; }
+            if root.active-goal : ScrollView {
+                height: 82px;
+                Text { text: root.goal; color: #333d36; font-size: 18px; wrap: word-wrap; }
+            }
+            if !root.active-goal : VerticalLayout {
+                spacing: 12px;
+                Text { text: root.subtitle; color: #72766d; font-size: 13px; wrap: word-wrap; }
+                LineEdit { text <=> root.draft; placeholder-text: "e.g. Write the first paragraph";
+                    accepted => { root.start-goal(self.text); }
+                    edited => { root.draft-changed(self.text); }
+                }
+            }
+            if root.active-goal : HorizontalLayout {
+                spacing: 8px;
+                Action { label: "Still on it"; primary: true; clicked => { root.still-working(); } }
+                Action { label: "Finished"; clicked => { root.finish-goal(); } }
+                Action { label: "Canceled"; clicked => { root.cancel-goal(); } }
+            }
+            if !root.active-goal : Action { label: "Start focusing"; primary: true; clicked => { root.start-goal(root.draft); } }
+            Text { text: root.timer-description; color: #72766d; font-size: 11px; wrap: word-wrap; }
+        }
+        if root.settings-open : VerticalLayout {
+            spacing: 10px;
+            Text { text: "Make it your rhythm"; color: #263b30; font-size: 22px; font-weight: 600; }
+            CheckBox { text: "Random reminder intervals"; checked <=> root.random-timing; }
+            if root.random-timing : VerticalLayout {
+                spacing: 8px;
+                HorizontalLayout {
+                    spacing: 8px;
+                    Text { text: "Earliest (minutes)"; vertical-alignment: center; }
+                    SpinBox { minimum: 1; maximum: 1440; value <=> root.min-minutes; }
+                }
+                HorizontalLayout {
+                    spacing: 8px;
+                    Text { text: "Latest (minutes)"; vertical-alignment: center; }
+                    SpinBox { minimum: 1; maximum: 1440; value <=> root.max-minutes; }
+                }
+            }
+            if !root.random-timing : HorizontalLayout {
+                spacing: 8px;
+                Text { text: "Every"; vertical-alignment: center; }
+                SpinBox { minimum: 1; maximum: 1440; value <=> root.fixed-minutes; }
+                Text { text: "minutes"; vertical-alignment: center; }
+            }
+            CheckBox { text: "Serious mode"; checked <=> root.serious; }
+            Text { text: root.serious ? "Show over full-screen apps whenever possible.\nAlways wait while your device is locked." : "Normal mode waits until full-screen activity ends.\nAlways wait while your device is locked."; color: #72766d; font-size: 12px; wrap: word-wrap; }
+            CheckBox { text: "Start when I log in"; checked: root.startup-enabled; enabled: root.startup-available;
+                toggled => { root.set-startup(self.checked); }
+            }
+            HorizontalLayout {
+                spacing: 8px;
+                Button { text: "Reset window position"; clicked => { root.reset-position(); } }
+                Button { text: "About"; clicked => { about.show(); } }
+            }
+            Text { text: root.integration; color: #72766d; font-size: 11px; wrap: word-wrap; }
+            Action { label: "Save settings"; primary: true; clicked => { root.save-settings(root.random-timing, root.min-minutes, root.max-minutes, root.fixed-minutes, root.serious); } }
+        }
+        if root.error != "" : Text { text: root.error; color: #9b4338; font-size: 12px; wrap: word-wrap; }
+        Rectangle { vertical-stretch: 1; }
+        HorizontalLayout {
+            spacing: 12px;
+            Text { text: "Quietly here when you need it."; color: #83877d; font-size: 10px; vertical-alignment: center; }
+            Rectangle { horizontal-stretch: 1; }
+            Button { text: "Hide"; clicked => { root.hide-card(); } }
+            Button { text: "Quit"; clicked => { root.quit-app(); } }
+        }
+    }
+    about := PopupWindow {
+        x: 30px; y: 80px; width: 360px; height: 190px;
+        Rectangle {
+            background: #f7f6f0; border-width: 1px; border-color: #d6d9d1;
+            VerticalLayout {
+                padding: 20px; spacing: 12px;
+                Text { text: "ADHD · 0.1.0"; color: #263b30; font-size: 18px; }
+                Text { text: "One thing at a time. Stored only on this device."; color: #72766d; wrap: word-wrap; }
+                AboutSlint {}
+                Button { text: "Close"; clicked => { about.close(); } }
+            }
+        }
+    }
+}
