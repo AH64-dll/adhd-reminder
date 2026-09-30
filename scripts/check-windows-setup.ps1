@@ -25,6 +25,9 @@ $temporary = Join-Path ([IO.Path]::GetTempPath()) ('ADHD setup ' + [guid]::NewGu
 $bundle = Join-Path $temporary ("ADHD's setup & 100% ready! " + [char]0x03A9)
 $taskName = 'ADHD Reminder ' + [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
 $shortcut = Join-Path ([Environment]::GetFolderPath('Programs')) 'ADHD.lnk'
+if ((Get-ScheduledTask -TaskName $taskName -ErrorAction SilentlyContinue) -or (Test-Path -LiteralPath $shortcut)) {
+    throw 'Run this installation test in a disposable Windows account without an existing ADHD installation.'
+}
 $installed = $false
 try {
     New-Item -ItemType Directory -Force (Join-Path $bundle 'scripts'), (Join-Path $bundle 'bin') | Out-Null
